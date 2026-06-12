@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CORS — The thing every developer breaks at least once</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lora:ital,wght@0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #FAFAF8;
+    --surface: #FFFFFF;
+    --ink: #1A1A18;
+    --ink-2: #4A4A46;
+    --ink-3: #888780;
+    --accent: #1D9E75;
+    --accent-light: #E1F5EE;
+    --accent-dark: #085041;
+    --danger: #E24B4A;
+    --danger-light: #FCEBEB;
+    --amber: #BA7517;
+    --amber-light: #FAEEDA;
+    --purple: #534AB7;
+    --purple-light: #EEEDFE;
+    --rule: #E8E6DF;
+    --code-bg: #F1EFE8;
+    --serif: 'Lora', Georgia, serif;
+    --sans: 'Inter', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 17px;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+
+
+
+  /* ── HERO ── */
+  .hero {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 5rem 2rem 3rem;
+  }
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1.5rem;
+  }
+  .hero-eyebrow::before {
+    content: '';
+    display: block;
+    width: 24px;
+    height: 1.5px;
+    background: var(--accent);
+  }
+  .hero h1 {
+    font-family: var(--serif);
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--ink);
+    margin-bottom: 1.25rem;
+    letter-spacing: -.01em;
+  }
+  .hero-sub {
+    font-size: 1.1rem;
+    color: var(--ink-2);
+    max-width: 560px;
+    line-height: 1.65;
+    margin-bottom: 2rem;
+  }
+  .hero-meta {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    font-size: 13px;
+    color: var(--ink-3);
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule);
+  }
+  .meta-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--rule); }
+
+
+  /* ── CONTENT ── */
+  .content {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 2rem 6rem;
+  }
+
+  /* ── SECTIONS ── */
+  .section { margin-bottom: 4rem; }
+  .section-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: .75rem;
+  }
+  .section h2 {
+    font-family: var(--serif);
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 1.25rem;
+    line-height: 1.3;
+  }
+  .section h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 1.75rem 0 .6rem;
+    letter-spacing: .01em;
+  }
+  .section p { margin-bottom: 1rem; color: var(--ink-2); }
+  .section p:last-child { margin-bottom: 0; }
+
+  /* ── CALLOUT BOXES ── */
+  .callout {
+    border-radius: 10px;
+    padding: 1.1rem 1.4rem;
+    margin: 1.75rem 0;
+    border-left: 3px solid;
+    font-size: 15px;
+    line-height: 1.65;
+  }
+  .callout-key { background: var(--accent-light); border-color: var(--accent); color: var(--accent-dark); }
+  .callout-warn { background: var(--danger-light); border-color: var(--danger); color: #791F1F; }
+  .callout-info { background: var(--purple-light); border-color: var(--purple); color: #26215C; }
+  .callout-amber { background: var(--amber-light); border-color: var(--amber); color: #412402; }
+  .callout strong { font-weight: 600; }
+
+  /* ── CODE ── */
+  pre {
+    background: var(--code-bg);
+    border-radius: 8px;
+    padding: 1.25rem 1.4rem;
+    overflow-x: auto;
+    margin: 1.25rem 0;
+    border: 1px solid var(--rule);
+  }
+  code {
+    font-family: var(--mono);
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: var(--ink);
+  }
+  p code, li code {
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--accent-dark);
+  }
+  .code-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink-3);
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+
+  /* ── FLOW DIAGRAM ── */
+  .flow {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 1.75rem 0;
+    overflow-x: auto;
+  }
+  .flow-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); margin-bottom: 1rem; }
+  .flow-row { display: flex; align-items: center; gap: 0; flex-wrap: nowrap; min-width: 500px; }
+  .flow-box {
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    text-align: center;
+    min-width: 100px;
+    flex-shrink: 0;
+  }
+  .fb-teal { background: var(--accent-light); color: var(--accent-dark); border: 1px solid #9FE1CB; }
+  .fb-purple { background: var(--purple-light); color: #26215C; border: 1px solid #AFA9EC; }
+  .fb-amber { background: var(--amber-light); color: #412402; border: 1px solid #FAC775; }
+  .fb-red { background: var(--danger-light); color: #791F1F; border: 1px solid #F7C1C1; }
+  .fb-gray { background: #F1EFE8; color: #444441; border: 1px solid #D3D1C7; }
+  .flow-arrow { flex: 1; height: 1px; background: var(--rule); position: relative; min-width: 20px; }
+  .flow-arrow::after { content: '▶'; position: absolute; right: -6px; top: -7px; font-size: 10px; color: var(--ink-3); }
+  .flow-arrow-label { font-size: 10px; color: var(--ink-3); text-align: center; margin-top: 4px; }
+  .flow-col { display: flex; flex-direction: column; align-items: center; }
+
+  /* ── MYTHS ── */
+  .myths { display: flex; flex-direction: column; gap: 0; margin: 1.5rem 0; border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; }
+  .myth-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  .myth-row + .myth-row { border-top: 1px solid var(--rule); }
+  .myth-cell { padding: 1rem 1.25rem; font-size: 14px; line-height: 1.55; }
+  .myth-cell + .myth-cell { border-left: 1px solid var(--rule); }
+  .myth-no { background: var(--danger-light); }
+  .myth-yes { background: var(--accent-light); }
+  .myth-header { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border-bottom: 1px solid var(--rule); }
+  .myth-h { padding: .6rem 1.25rem; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; }
+  .myth-h-no { background: var(--danger-light); color: #791F1F; }
+  .myth-h-yes { background: var(--accent-light); color: var(--accent-dark); border-left: 1px solid var(--rule); }
+  .myth-cell-no { color: #791F1F; }
+  .myth-cell-yes { color: var(--accent-dark); }
+
+  /* ── RULE DIVIDER ── */
+  .rule-divider { border: none; border-top: 1px solid var(--rule); margin: 3rem 0; }
+
+  /* ── TOC ── */
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    margin: 2rem 0 3rem;
+    font-size: 14px;
+  }
+  .toc-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); margin-bottom: .75rem; }
+  .toc ol { padding-left: 1.2rem; }
+  .toc li { margin-bottom: .35rem; }
+  .toc a { color: var(--ink-2); text-decoration: none; }
+  .toc a:hover { color: var(--accent); }
+
+  /* ── SUMMARY BOX ── */
+  .summary-box {
+    background: var(--ink);
+    color: #FAFAF8;
+    border-radius: 12px;
+    padding: 2rem 2.25rem;
+    margin: 2.5rem 0;
+  }
+  .summary-box h3 { color: #9FE1CB; font-size: 1rem; font-weight: 600; margin-bottom: 1rem; }
+  .summary-box ul { list-style: none; padding: 0; }
+  .summary-box li { font-size: 14px; padding: .4rem 0; border-bottom: 1px solid rgba(255,255,255,.08); color: #D3D1C7; line-height: 1.55; }
+  .summary-box li:last-child { border-bottom: none; }
+  .summary-box li::before { content: '→ '; color: #1D9E75; font-weight: 600; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    .hero { padding: 3rem 1.25rem 2rem; }
+    .content { padding: 0 1.25rem 4rem; }
+    .site-header { padding: .75rem 1.25rem; }
+    .myth-row { grid-template-columns: 1fr; }
+    .myth-cell + .myth-cell { border-left: none; border-top: 1px solid var(--rule); }
+    .myth-header { grid-template-columns: 1fr; }
+    .myth-h + .myth-h { border-left: none; border-top: 1px solid var(--rule); }
+    .flow-row { min-width: 420px; }
+  }
+</style>
+</head>
+<body>
+
+
+
+<article>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-eyebrow">Web Security</div>
+    <h1>CORS — the thing every developer breaks at least once</h1>
+    <p class="hero-sub">A complete story of what CORS is, why it exists, how preflight works, what triggers a preflight, and how to get it right — with real code from Rails and Node.js.</p>
+    <div class="hero-meta">
+      <span>Deep dive</span>
+      <span class="meta-dot"></span>
+      <span>~12 min read</span>
+      <span class="meta-dot"></span>
+      <span>Rails · Node.js · Real code</span>
+    </div>
+  </div>
+  </div>
+
+  <div class="content">
+
+    <!-- HERO INFOGRAPHIC -->
+    <div style="margin:0 0 2.5rem;border:1px solid var(--rule);border-radius:14px;overflow:hidden;background:#FAFAF8;">
+      <svg width="100%" viewBox="0 0 680 1080" role="img" xmlns="http://www.w3.org/2000/svg">
+        <title>CORS explained in one image</title>
+        <desc>A four-panel visual story: the cookie theft attack, the Same-Origin Policy, CORS as a permission slip, and the preflight handshake.</desc>
+        <defs>
+          <marker id="arr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </marker>
+        </defs>
+        <rect width="680" height="1080" fill="#FAFAF8"/>
+        <rect x="0" y="0" width="680" height="52" fill="#1A1A18"/>
+        <text font-family="'Inter',sans-serif" font-size="13" font-weight="500" fill="#9FE1CB" x="340" y="22" text-anchor="middle" dominant-baseline="central" letter-spacing=".1em">CORS</text>
+        <text font-family="'Inter',sans-serif" font-size="11" fill="#888780" x="340" y="38" text-anchor="middle" dominant-baseline="central" letter-spacing=".06em">CROSS-ORIGIN RESOURCE SHARING — THE COMPLETE PICTURE</text>
+        <rect x="24" y="68" width="632" height="228" rx="14" fill="#FFF0F0" stroke="#F09595" stroke-width="0.5"/>
+        <text font-family="'Inter',sans-serif" font-size="10" font-weight="600" fill="#A32D2D" x="40" y="90" letter-spacing=".09em" dominant-baseline="central">01 — THE ATTACK THIS ALL EXISTS TO STOP</text>
+        <rect x="40" y="104" width="130" height="168" rx="10" fill="#FFFFFF" stroke="#F7C1C1" stroke-width="0.5"/>
+        <rect x="48" y="114" width="114" height="78" rx="6" fill="#FCEBEB"/>
+        <rect x="54" y="121" width="102" height="8" rx="3" fill="#E24B4A" opacity=".5"/>
+        <rect x="54" y="133" width="80" height="6" rx="2" fill="#791F1F" opacity=".2"/>
+        <rect x="54" y="143" width="94" height="6" rx="2" fill="#791F1F" opacity=".15"/>
+        <rect x="54" y="155" width="102" height="18" rx="4" fill="#D85A30" opacity=".7"/>
+        <text font-family="'Inter',sans-serif" font-size="8" font-weight="600" fill="#FFFFFF" x="105" y="167" text-anchor="middle" dominant-baseline="central">CLAIM FREE GIFT</text>
+        <rect x="50" y="200" width="110" height="22" rx="4" fill="#FCEBEB" stroke="#F7C1C1" stroke-width=".5"/>
+        <text font-family="'Inter',sans-serif" font-size="7.5" fill="#791F1F" x="55" y="211" dominant-baseline="central">fetch('/transfer', {</text>
+        <text font-family="'Inter',sans-serif" font-size="7.5" fill="#A32D2D" x="63" y="222" dominant-baseline="central">credentials:'include'</text>
+        <text font-family="'Inter',sans-serif" font-size="10" font-weight="600" fill="#791F1F" x="105" y="255" text-anchor="middle" dominant-baseline="central">evil.com</text>
+        <text font-family="'Inter',sans-serif" font-size="9" fill="#A32D2D" x="105" y="267" text-anchor="middle" dominant-baseline="central">malicious site</text>
+        <rect x="270" y="128" width="140" height="110" rx="10" fill="#FFFFFF" stroke="#B5D4F4" stroke-width="0.5"/>
+        <rect x="280" y="138" width="120" height="68" rx="5" fill="#E6F1FB"/>
+        <rect x="286" y="145" width="108" height="7" rx="2" fill="#185FA5" opacity=".3"/>
+        <rect x="286" y="156" width="80" height="6" rx="2" fill="#185FA5" opacity=".2"/>
+        <rect x="286" y="165" width="96" height="6" rx="2" fill="#185FA5" opacity=".2"/>
+        <rect x="286" y="180" width="108" height="16" rx="3" fill="#378ADD" opacity=".5"/>
+        <text font-family="'Inter',sans-serif" font-size="7" font-weight="600" fill="#042C53" x="340" y="190" text-anchor="middle" dominant-baseline="central">VIEW BALANCE</text>
+        <rect x="280" y="212" width="120" height="18" rx="9" fill="#E1F5EE" stroke="#9FE1CB" stroke-width=".5"/>
+        <text font-family="'Inter',sans-serif" font-size="9" fill="#085041" x="340" y="221" text-anchor="middle" dominant-baseline="central">cookie: session=abc123</text>
+        <text font-family="'Inter',sans-serif" font-size="10" font-weight="600" fill="#0C447C" x="340" y="252" text-anchor="middle" dominant-baseline="central">your browser</text>
+        <text font-family="'Inter',sans-serif" font-size="9" fill="#185FA5" x="340" y="264" text-anchor="middle" dominant-baseline="central">holds your login cookie</text>
+        <rect x="510" y="128" width="130" height="110" rx="10" fill="#FFFFFF" stroke="#9FE1CB" stroke-width="0.5"/>
+        <rect x="518" y="138" width="114" height="72" rx="5" fill="#E1F5EE"/>
+        <text font-family="'Inter',sans-serif" font-size="9" font-weight="600" fill="#085041" x="575" y="158" text-anchor="middle" dominant-baseline="central">mybank.com</text>
+        <rect x="524" y="167" width="102" height="6" rx="2" fill="#1D9E75" opacity=".4"/>
+        <rect x="524" y="177" width="78" height="6" rx="2" fill="#1D9E75" opacity=".25"/>
+        <rect x="524" y="187" width="90" height="6" rx="2" fill="#1D9E75" opacity=".2"/>
+        <rect x="524" y="197" width="102" height="8" rx="2" fill="#D85A30" opacity=".3"/>
+        <text font-family="'Inter',sans-serif" font-size="7" fill="#791F1F" x="575" y="202" text-anchor="middle" dominant-baseline="central">TRANSFER to attacker?</text>
+        <text font-family="'Inter',sans-serif" font-size="10" font-weight="600" fill="#085041" x="575" y="252" text-anchor="middle" dominant-baseline="central">bank server</text>
+        <text font-family="'Inter',sans-serif" font-size="9" fill="#0F6E56" x="575" y="264" text-anchor="middle" dominant-baseline="central">can't tell it's not you</text>
+        <line x1="172" y1="185" x2="268" y2="185" stroke="#E24B4A" stroke-width="1.5" stroke-dasharray="5 3" fill="none" marker-end="url(#arr2)"/>
+        <text font-family="'Inter',sans-serif" font-size="9" fill="#791F1F" x="220" y="176" text-anchor="middle" dominant-baseline="central">JS runs in you</text>
+        <line x1="412" y1="185" x2="508" y2="185" stroke="#E24B4A" stroke-width="1.5" stroke-dasharray="5 3" fill="none" marker-end="url(#arr2)"/>
+        <text font-family="'Inter',sans-serif" font-size="9" fill="#791F1F" x="460" y="176" text-anchor="middle" dominant-baseline="central">+ your cookie</text>
+        <rect x="24" y="312" width="632" height="206" rx="14" fill="#F4F0FF" stroke="#AFA9EC" stroke-width="0.5"/>
+        <text font-family="'Inter',sans-serif" font-size="10" font-weight="600" fill="#3C3489" x="40" y="334" letter-spacing=".09em" dominant-baseline="central">02 — SAME-ORIGIN POLICY: THE BROWSER DRAWS A WALL</text>
+        <rect x="40" y="352" width="140" height="140" rx="10" fill="#FCEBEB" stroke="#F7C1C1" stroke-width="0.5"/>
+        <text font-family="'Inter',sans-serif" font-size="11" font-weight="600" fill="#791F1F" x="110" y="395" text-anchor="middle" dominant-baseline="central">evil.com</text>
+        <text font-family="'Inter',sans-serif" font-size="9" fill="#A32D2D" x="110" y="412" text-anchor="middle" dominant-baseline="central">tries to reach bank</text>
+        <text font-family="'Inter',sans-serif" font-size="9" fill="#A32D2D" x="110" y="426" text-anchor="middle" dominant-baseline="central">different origin</text>
+        <rect x="58" y="440" width="104" height="36" rx="6" fill="#FCEBEB" stroke="#F09595" stroke-width=".5"/>
+        <text font-family="'Inter',sans-serif" font-size="9" font-weight="600" fill="#791F1F" x="110" y="458" text-anchor="middle" dominant-baseline="central">BLOCKED</text>
+        <rect x="270" y="352" width="140" height="140" rx="12" fill="#EEEDFE" stroke="#7F77DD" stroke-width="1.5"/>
+        <text font-family="'Inter',sans-serif" font-size="12" font-weight="600" fill="#26215C" x="340" y="392" text-anchor="middle" dominant-baseline="central">BROWSER</text>
+        <text font-family="'Inter',sans-serif" font-size="9" fill="#534AB7" x="340" y="408" text-anchor="middle" dominant-baseline="central">checks origins</text>
+        <rect x="282" y="420" width="116" height="52" rx="6" fill="#FFFFFF" stroke="#AFA9EC" stroke-width=".5"/>
+        <text font-family="'Inter',sans-serif" font-size="9" font-weight="600" fill="#3C3489" x="340" y="437" text-anchor="middle" dominant-baseline="central">evil.com</text>
+        <text font-family="'Inter',sans-serif" font-size="11" fill="#534AB7" x="340" y="452" text-anchor="middle" dominant-baseline="central">≠</text>
+        <text font-family="'Inter',sans-serif" font-size="9" font-weight="600" fill="#3C3489" x="340" y="464" text-anchor="middle" dominant-baseline="central">mybank.com</text>
+        <rect x="500" y="352" width="140" height="140" rx="10" fill="#E1F5EE" stroke="#5DCAA5" stroke-width="0.5"/>
+        <text font-family="'Inter',sans-serif" font-size="11" font-weight="600" fill="#085041" x="570" y="395" text-anchor="middle" dominant-baseline="central">mybank.com</text>
+        <text font-family="'Inter',sans-serif" font-size="9" fill="#0F6E56" x="570" y="412" text-anchor="middle" dominant-baseline="central">protected</text>
+        <rect x="518" y="430" width="104" height="36" rx="6" fill="#E1F5EE" stroke="#5DCAA5" stroke-width=".5"/>
+        <text font-family="'Inter',sans-serif" font-size="9" font-weight="600" fill="#085041" x="570" y="458" text-anchor="middle" dominant-baseline="central">SAFE</text>
+        <rect x="186" y="408" width="28" height="28" rx="14" fill="#E24B4A"/>
+        <text font-family="'Inter',sans-serif" font-size="14" font-weight="700" fill="#FFFFFF" x="200" y="422" text-anchor="middle" dominant-baseline="central">x</text>
+        <line x1="182" y1="422" x2="174" y2="422" stroke="#E24B4A" stroke-width="1.5" fill="none" marker-end="url(#arr2)"/>
+        <line x1="414" y1="422" x2="498" y2="422" stroke="#B4B2A9" stroke-width="1.5" stroke-dasharray="4 3" fill="none"/>
+        <text font-family="'Inter',sans-serif" font-size="9" fill="#5F5E5A" x="456" y="413" text-anchor="middle" dominant-baseline="central">never reaches</text>
+        <rect x="24" y="534" width="632" height="230" rx="14" fill="#F0FFF8" stroke="#5DCAA5" stroke-width="0.5"/>
+        <text font-family="'Inter',sans-serif" font-size="10" font-weight="600" fill="#085041" x="40" y="556" letter-spacing=".09em" dominant-baseline="central">03 — CORS: THE PERMISSION SLIP</text>
+        <text font-family="'Inter',sans-serif" font-size="11" fill="#085041" x="40" y="578" dominant-baseline="central">Your server puts a header on its response. Browser reads it. Origins match. Request goes through.</text>
+        <rect x="40" y="596" width="600" height="68" rx="8" fill="#1A1A18"/>
+        <text font-family="'Courier New',monospace" font-size="11" fill="#9FE1CB" x="56" y="620" dominant-baseline="central">HTTP/1.1 200 OK</text>
+        <text font-family="'Courier New',monospace" font-size="11" fill="#B5D4F4" x="56" y="636" dominant-baseline="central">Access-Control-Allow-Origin:  https://app.example.com</text>
+        <text font-family="'Courier New',monospace" font-size="11" fill="#B5D4F4" x="56" y="652" dominant-baseline="central">Access-Control-Allow-Credentials:  true</text>
+        <rect x="40" y="678" width="188" height="62" rx="8" fill="#FFFFFF" stroke="#9FE1CB" stroke-width="0.5"/>
+        <text font-family="'Inter',sans-serif" font-size="10" font-weight="600" fill="#085041" x="134" y="697" text-anchor="middle" dominant-baseline="central">your frontend</text>
+        <text font-family="'Inter',sans-serif" font-size="9" fill="#0F6E56" x="134" y="712" text-anchor="middle" dominant-baseline="central">app.example.com</text>
+        <text font-family="'Inter',sans-serif" font-size="9" fill="#0F6E56" x="134" y="726" text-anchor="middle" dominant-baseline="central">sends cross-origin request</text>
+        <rect x="246" y="678" width="188" height="62" rx="8" fill="#EEEDFE" stroke="#AFA9EC" stroke-width="0.5"/>
+        <text font-family="'Inter',sans-serif" font-size="10" font-weight="600" fill="#26215C" x="340" y="697" text-anchor="middle" dominant-baseline="central">browser checks header</text>
+        <text font-family="'Inter',sans-serif" font-size="9" fill="#534AB7" x="340" y="712" text-anchor="middle" dominant-baseline="central">origin matches?</text>
+        <text font-family="'Inter',sans-serif" font-size="9" font-weight="600" fill="#3C3489" x="340" y="726" text-anchor="middle" dominant-baseline="central">yes — allow JS to read</text>
+        <rect x="452" y="678" width="188" height="62" rx="8" fill="#FFFFFF" stroke="#9FE1CB" stroke-width="0.5"/>
+        <text font-family="'Inter',sans-serif" font-size="10" font-weight="600" fill="#085041" x="546" y="697" text-anchor="middle" dominant-baseline="central">your API server</text>
+        <text font-family="'Inter',sans-serif" font-size="9" fill="#0F6E56" x="546" y="712" text-anchor="middle" dominant-baseline="central">api.example.com</text>
+        <text font-family="'Inter',sans-serif" font-size="9" fill="#0F6E56" x="546" y="726" text-anchor="middle" dominant-baseline="central">sets CORS headers on response</text>
+        <line x1="228" y1="709" x2="244" y2="709" stroke="#1D9E75" stroke-width="1.5" fill="none" marker-end="url(#arr2)"/>
+        <line x1="434" y1="709" x2="450" y2="709" stroke="#1D9E75" stroke-width="1.5" fill="none" marker-end="url(#arr2)"/>
+        <rect x="24" y="780" width="632" height="274" rx="14" fill="#FAEEDA" stroke="#EF9F27" stroke-width="0.5"/>
+        <text font-family="'Inter',sans-serif" font-size="10" font-weight="600" fill="#412402" x="40" y="802" letter-spacing=".09em" dominant-baseline="central">04 — PREFLIGHT: THE BROWSER ASKS "MAY I?" BEFORE RISKY REQUESTS</text>
+        <rect x="40" y="818" width="188" height="52" rx="8" fill="#FFFFFF" stroke="#FAC775" stroke-width="0.5"/>
+        <text font-family="'Inter',sans-serif" font-size="10" font-weight="600" fill="#412402" x="134" y="835" text-anchor="middle" dominant-baseline="central">your JS calls</text>
+        <text font-family="'Courier New',monospace" font-size="9" fill="#633806" x="134" y="851" text-anchor="middle" dominant-baseline="central">fetch(DELETE /user)</text>
+        <text font-family="'Inter',sans-serif" font-size="9" fill="#854F0B" x="134" y="864" text-anchor="middle" dominant-baseline="central">with Authorization header</text>
+        <rect x="246" y="818" width="188" height="52" rx="8" fill="#EEEDFE" stroke="#AFA9EC" stroke-width="0.5"/>
+        <text font-family="'Inter',sans-serif" font-size="10" font-weight="600" fill="#26215C" x="340" y="835" text-anchor="middle" dominant-baseline="central">browser pauses</text>
+        <text font-family="'Inter',sans-serif" font-size="9" fill="#534AB7" x="340" y="851" text-anchor="middle" dominant-baseline="central">sends OPTIONS first</text>
+        <text font-family="'Inter',sans-serif" font-size="9" fill="#3C3489" x="340" y="864" text-anchor="middle" dominant-baseline="central">invisible to your JS</text>
+        <rect x="452" y="818" width="188" height="52" rx="8" fill="#FFFFFF" stroke="#FAC775" stroke-width="0.5"/>
+        <text font-family="'Inter',sans-serif" font-size="10" font-weight="600" fill="#412402" x="546" y="835" text-anchor="middle" dominant-baseline="central">server responds</text>
+        <text font-family="'Inter',sans-serif" font-size="9" fill="#633806" x="546" y="851" text-anchor="middle" dominant-baseline="central">DELETE allowed?</text>
+        <text font-family="'Inter',sans-serif" font-size="9" font-weight="600" fill="#085041" x="546" y="864" text-anchor="middle" dominant-baseline="central">yes — proceed</text>
+        <line x1="228" y1="844" x2="244" y2="844" stroke="#BA7517" stroke-width="1.5" fill="none" marker-end="url(#arr2)"/>
+        <line x1="434" y1="844" x2="450" y2="844" stroke="#BA7517" stroke-width="1.5" fill="none" marker-end="url(#arr2)"/>
+        <rect x="40" y="892" width="600" height="78" rx="8" fill="#1A1A18"/>
+        <text font-family="'Courier New',monospace" font-size="10" fill="#888780" x="56" y="910" dominant-baseline="central">step 1 (auto, invisible to you)</text>
+        <text font-family="'Courier New',monospace" font-size="10" fill="#FAC775" x="56" y="926" dominant-baseline="central">OPTIONS /user  →  Access-Control-Request-Method: DELETE</text>
+        <text font-family="'Courier New',monospace" font-size="10" fill="#888780" x="56" y="942" dominant-baseline="central">step 2 (only now does browser send the real request)</text>
+        <text font-family="'Courier New',monospace" font-size="10" fill="#9FE1CB" x="56" y="958" dominant-baseline="central">DELETE /user  →  your JS finally gets the response</text>
+        <rect x="40" y="986" width="600" height="48" rx="8" fill="#F1EFE8" stroke="#D3D1C7" stroke-width="0.5"/>
+        <text font-family="'Inter',sans-serif" font-size="10" font-weight="600" fill="#444441" x="340" y="1005" text-anchor="middle" dominant-baseline="central">what triggers preflight: PUT / DELETE / PATCH · Authorization header · Content-Type: application/json</text>
+        <text font-family="'Inter',sans-serif" font-size="10" fill="#5F5E5A" x="340" y="1022" text-anchor="middle" dominant-baseline="central">what does not: simple GET or POST · basic headers only</text>
+        <rect x="0" y="1052" width="680" height="28" fill="#1A1A18"/>
+        <text font-family="'Inter',sans-serif" font-size="9" fill="#444441" x="340" y="1066" text-anchor="middle" dominant-baseline="central">CORS is enforced by the browser, not the server · the server always receives the request · the browser blocks the response</text>
+      </svg>
+    </div>
+
+    <!-- TOC -->
+    <div class="toc">
+      <div class="toc-label">In this post</div>
+      <ol>
+        <li><a href="#why">Why does CORS exist?</a></li>
+        <li><a href="#sop">The Same-Origin Policy</a></li>
+        <li><a href="#how">How CORS works</a></li>
+        <li><a href="#preflight">What is a preflight request?</a></li>
+        <li><a href="#headers">CORS headers explained</a></li>
+        <li><a href="#code">How it looks in real code</a></li>
+        <li><a href="#mistakes">Common mistakes</a></li>
+        <li><a href="#fix">The fix</a></li>
+      </ol>
+    </div>
+
+    <!-- SECTION 1 -->
+    <div class="section" id="why">
+      <div class="section-eyebrow">01 — the origin story</div>
+      <h2>Why does CORS exist at all?</h2>
+      <p>To understand CORS, you have to first understand the attack it's defending against. Imagine you're logged into your bank. Your browser has quietly saved a session cookie — a small proof that says "this person is authenticated." You can't see it. It just sits there.</p>
+      <p>Now you open a sketchy website in another tab. Without any protection, that website's JavaScript could silently run this:</p>
+      <div class="code-label">evil.com running in your browser</div>
+      <pre><code>fetch('https://mybank.com/api/transfer', {
+  method: 'POST',
+  credentials: 'include',  // attaches your bank cookie automatically
+  body: JSON.stringify({
+    to: 'attacker-account',
+    amount: 50000
+  })
+})</code></pre>
+      <p>Your browser would attach your bank's session cookie automatically — because that's how cookies work. The bank would see a valid session. It would think it was you. The transfer would happen. You'd never know.</p>
+      <p>This is called <strong>Cross-Site Request Forgery (CSRF)</strong>. It's not hypothetical. It's the reason the browser needed a hard rule.</p>
+      <div class="callout callout-warn">
+        <strong>The uncomfortable truth:</strong> The browser is the last line of defense between a malicious website and your users' data on other sites. If the browser doesn't stop it, nothing will — because the server sees a valid cookie and has no way to tell the request came from somewhere unauthorized.
+      </div>
+    </div>
+
+    <hr class="rule-divider">
+
+    <!-- SECTION 2 -->
+    <div class="section" id="sop">
+      <div class="section-eyebrow">02 — the rule</div>
+      <h2>The Same-Origin Policy</h2>
+      <p>Browsers responded with the <strong>Same-Origin Policy (SOP)</strong>: JavaScript from one origin cannot read data from a different origin. Full stop.</p>
+      <p>An origin is the combination of three things:</p>
+      <div class="flow" style="padding: 1.25rem">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;">
+          <span class="flow-box fb-teal">Protocol<br><small style="font-size:11px;opacity:.8">https://</small></span>
+          <span style="color:var(--ink-3);font-size:18px;font-weight:300">+</span>
+          <span class="flow-box fb-purple">Domain<br><small style="font-size:11px;opacity:.8">app.example.com</small></span>
+          <span style="color:var(--ink-3);font-size:18px;font-weight:300">+</span>
+          <span class="flow-box fb-amber">Port<br><small style="font-size:11px;opacity:.8">:443</small></span>
+          <span style="color:var(--ink-3);font-size:18px;font-weight:300">=</span>
+          <span class="flow-box fb-gray" style="font-weight:600">Origin</span>
+        </div>
+      </div>
+      <p>Change any one of these and you have a different origin. These are all <em>different</em> from each other:</p>
+      <pre><code>https://app.example.com        ← base
+https://api.example.com        ← ✗ different subdomain
+http://app.example.com         ← ✗ different protocol
+https://app.example.com:8080   ← ✗ different port</code></pre>
+      <p>SOP solved the CSRF problem — but it created a new one. The modern web is built on APIs. Your frontend at <code>app.example.com</code> absolutely needs to call your API at <code>api.example.com</code>. With SOP alone, that's completely blocked.</p>
+      <div class="callout callout-info">
+        <strong>SOP was too strict.</strong> It stopped the attacks. But it also stopped legitimate cross-domain communication entirely. The web needed a controlled, opt-in way for servers to say: "I trust that other domain. Let it through." That's CORS.
+      </div>
+    </div>
+
+    <hr class="rule-divider">
+
+    <!-- SECTION 3 -->
+    <div class="section" id="how">
+      <div class="section-eyebrow">03 — the mechanism</div>
+      <h2>How CORS actually works</h2>
+      <p>CORS is not a security feature on the server. It is a <strong>browser contract</strong>. This is the single most important thing to understand about it, and the thing most developers don't fully internalize.</p>
+      <div class="callout callout-key">
+        <strong>CORS is enforced by the browser, not the server.</strong> The server always receives the request. The server always processes it. The browser reads the response headers and decides whether to let your JavaScript see the response — or block it.
+      </div>
+      <p>When your browser makes a cross-origin request, the server needs to explicitly respond with a header that says which origins are allowed:</p>
+      <pre><code>Access-Control-Allow-Origin: https://app.example.com</code></pre>
+      <p>The browser reads that. If the requesting origin matches, it allows the JavaScript to read the response. If the header is missing or doesn't match, the browser blocks the response — even though the request already completed on the server.</p>
+
+      <div class="flow">
+        <div class="flow-label">What happens on a cross-origin request</div>
+        <div class="flow-row">
+          <div class="flow-col">
+            <div class="flow-box fb-teal">Browser</div>
+            <div class="flow-arrow-label">sends request</div>
+          </div>
+          <div class="flow-arrow"></div>
+          <div class="flow-col">
+            <div class="flow-box fb-amber">Server</div>
+            <div class="flow-arrow-label">processes it</div>
+          </div>
+          <div class="flow-arrow"></div>
+          <div class="flow-col">
+            <div class="flow-box fb-purple">Browser checks<br><small style="font-size:11px">ACAO header</small></div>
+            <div class="flow-arrow-label">allow or block?</div>
+          </div>
+          <div class="flow-arrow"></div>
+          <div class="flow-col">
+            <div class="flow-box fb-teal">JS sees<br>response ✓</div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--ink-3);margin-top:1rem;">The server is hit regardless. The browser decides if JS can read the response.</p>
+      </div>
+
+      <p>This is why a CORS error does not mean the server rejected your request. It means the browser rejected the response.</p>
+    </div>
+
+    <hr class="rule-divider">
+
+    <!-- SECTION 4 -->
+    <div class="section" id="preflight">
+      <div class="section-eyebrow">04 — the permission check</div>
+      <h2>What is a preflight request?</h2>
+      <p>For potentially dangerous cross-origin requests — anything beyond a simple GET or POST — the browser does something extra before sending your actual request. It asks for permission first. This is the preflight.</p>
+      <p>Think of it as the browser saying: <em>"I'm about to send a DELETE request with an Authorization header to a different domain. Before I do that, let me check if the server is actually expecting and allowing this."</em></p>
+
+      <h3>What triggers a preflight</h3>
+      <p>The browser will preflight if <em>any one</em> of these is true:</p>
+      <div class="flow">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13.5px;">
+          <div>
+            <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:#791F1F;margin-bottom:.6rem;">triggers preflight</div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="background:var(--danger-light);color:#791F1F;padding:6px 12px;border-radius:6px;">Method: PUT, DELETE, PATCH</div>
+              <div style="background:var(--danger-light);color:#791F1F;padding:6px 12px;border-radius:6px;">Authorization header</div>
+              <div style="background:var(--danger-light);color:#791F1F;padding:6px 12px;border-radius:6px;">Content-Type: application/json</div>
+              <div style="background:var(--danger-light);color:#791F1F;padding:6px 12px;border-radius:6px;">Any custom header</div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--accent-dark);margin-bottom:.6rem;">no preflight needed</div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="background:var(--accent-light);color:var(--accent-dark);padding:6px 12px;border-radius:6px;">Method: GET, POST, HEAD</div>
+              <div style="background:var(--accent-light);color:var(--accent-dark);padding:6px 12px;border-radius:6px;">Basic headers only</div>
+              <div style="background:var(--accent-light);color:var(--accent-dark);padding:6px 12px;border-radius:6px;">Content-Type: text/plain</div>
+              <div style="background:var(--accent-light);color:var(--accent-dark);padding:6px 12px;border-radius:6px;">Content-Type: multipart/form-data</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h3>The preflight conversation</h3>
+      <p>When your JavaScript calls <code>fetch('/api/user/1', { method: 'DELETE', headers: { Authorization: 'Bearer token' }})</code>, here is what actually happens — completely invisible to your code:</p>
+
+      <div class="code-label">Step 1 — browser sends OPTIONS (you never write this)</div>
+      <pre><code>OPTIONS /api/user/1 HTTP/1.1
+Host: api.example.com
+Origin: https://app.example.com
+Access-Control-Request-Method: DELETE
+Access-Control-Request-Headers: Authorization</code></pre>
+
+      <div class="code-label">Step 2 — server responds to preflight</div>
+      <pre><code>HTTP/1.1 204 No Content
+Access-Control-Allow-Origin: https://app.example.com
+Access-Control-Allow-Methods: GET, POST, DELETE, PUT, PATCH
+Access-Control-Allow-Headers: Authorization, Content-Type
+Access-Control-Max-Age: 3600</code></pre>
+
+      <div class="code-label">Step 3 — browser now sends your actual request</div>
+      <pre><code>DELETE /api/user/1 HTTP/1.1
+Host: api.example.com
+Origin: https://app.example.com
+Authorization: Bearer token</code></pre>
+
+      <p>Your JavaScript only sees the final DELETE response. The entire preflight exchange is completely invisible to your code. The browser handles it automatically — you never write a second <code>fetch()</code>, you never see the OPTIONS request, you never know it happened.</p>
+
+      <div class="callout callout-amber">
+        <strong>How does the server know it's a preflight?</strong> Not from <code>OPTIONS</code> alone — that's a normal HTTP method that existed before CORS. The signal is the combination of <code>OPTIONS</code> <em>and</em> the <code>Access-Control-Request-Method</code> header. That header is only ever sent by browsers doing CORS preflight. Libraries like <code>rack-cors</code> and the <code>cors</code> npm package check for exactly this combination.
+      </div>
+
+      <h3>Preflight caching with Max-Age</h3>
+      <p>Sending an OPTIONS request before every API call adds latency. The <code>Access-Control-Max-Age</code> header tells the browser how long to cache the preflight result in seconds. During that time, the browser skips the preflight and sends the actual request directly.</p>
+      <pre><code>Access-Control-Max-Age: 3600  // cache for 1 hour</code></pre>
+      <p>Setting it to <code>0</code> (as in the configs we saw) forces a preflight on every request — safer during development where configs change frequently, but slower in production.</p>
+    </div>
+
+    <hr class="rule-divider">
+
+    <!-- SECTION 5 -->
+    <div class="section" id="headers">
+      <div class="section-eyebrow">05 — the vocabulary</div>
+      <h2>CORS headers explained</h2>
+
+      <h3>Response headers (server → browser)</h3>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;font-size:13.5px;border-collapse:collapse;margin:1rem 0;">
+          <thead>
+            <tr style="border-bottom:2px solid var(--rule);">
+              <th style="text-align:left;padding:8px 12px;font-weight:600;color:var(--ink);width:45%;">Header</th>
+              <th style="text-align:left;padding:8px 12px;font-weight:600;color:var(--ink);">What it does</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--rule);">
+              <td style="padding:10px 12px;"><code>Access-Control-Allow-Origin</code></td>
+              <td style="padding:10px 12px;color:var(--ink-2);">Which origin is allowed. Can be a specific origin or <code>*</code> (wildcard)</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--rule);">
+              <td style="padding:10px 12px;"><code>Access-Control-Allow-Methods</code></td>
+              <td style="padding:10px 12px;color:var(--ink-2);">Which HTTP methods are permitted in the actual request</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--rule);">
+              <td style="padding:10px 12px;"><code>Access-Control-Allow-Headers</code></td>
+              <td style="padding:10px 12px;color:var(--ink-2);">Which request headers are permitted</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--rule);">
+              <td style="padding:10px 12px;"><code>Access-Control-Allow-Credentials</code></td>
+              <td style="padding:10px 12px;color:var(--ink-2);">Whether cookies and auth headers can be sent cross-origin</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--rule);">
+              <td style="padding:10px 12px;"><code>Access-Control-Max-Age</code></td>
+              <td style="padding:10px 12px;color:var(--ink-2);">How long the browser can cache preflight results (seconds)</td>
+            </tr>
+            <tr>
+              <td style="padding:10px 12px;"><code>Access-Control-Expose-Headers</code></td>
+              <td style="padding:10px 12px;color:var(--ink-2);">Which response headers JavaScript is allowed to read</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Request headers (browser → server, set automatically)</h3>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;font-size:13.5px;border-collapse:collapse;margin:1rem 0;">
+          <thead>
+            <tr style="border-bottom:2px solid var(--rule);">
+              <th style="text-align:left;padding:8px 12px;font-weight:600;color:var(--ink);width:45%;">Header</th>
+              <th style="text-align:left;padding:8px 12px;font-weight:600;color:var(--ink);">What it means</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--rule);">
+              <td style="padding:10px 12px;"><code>Origin</code></td>
+              <td style="padding:10px 12px;color:var(--ink-2);">Where the request is coming from — set automatically by the browser</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--rule);">
+              <td style="padding:10px 12px;"><code>Access-Control-Request-Method</code></td>
+              <td style="padding:10px 12px;color:var(--ink-2);">What HTTP method the actual request will use (preflight only)</td>
+            </tr>
+            <tr>
+              <td style="padding:10px 12px;"><code>Access-Control-Request-Headers</code></td>
+              <td style="padding:10px 12px;color:var(--ink-2);">What custom headers the actual request will send (preflight only)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>The credentials + wildcard trap</h3>
+      <p>This catches everyone eventually. When your frontend needs to send cookies or an Authorization header cross-origin, <em>both sides</em> must opt in — and the wildcard <code>*</code> is explicitly forbidden:</p>
+      <pre><code>// ✗ This combination is invalid — browser will refuse it
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Credentials: true
+
+// ✓ This works — explicit origin required with credentials
+Access-Control-Allow-Origin: https://app.example.com
+Access-Control-Allow-Credentials: true</code></pre>
+      <p>The browser also requires the client to opt in:</p>
+      <pre><code>fetch('https://api.example.com/data', {
+  credentials: 'include'  // must explicitly opt in on the JS side too
+})</code></pre>
+    </div>
+
+    <hr class="rule-divider">
+
+    <!-- SECTION 6 -->
+    <div class="section" id="code">
+      <div class="section-eyebrow">06 — in the real world</div>
+      <h2>How it looks in real code</h2>
+
+      <h3>Rails with rack-cors</h3>
+      <pre><code>Rails.application.config.middleware.insert_before 0, Rack::Cors do
+  allow do
+    origins do |source, env|
+      # source = the Origin header value from the request
+      # env = full Rack environment (all request headers etc.)
+      allowed_origins.any? { |pattern| pattern.match?(source) }
+    end
+
+    resource '/api/v1/*',
+             headers: :any,
+             methods: %i[get post put patch delete options head],
+             max_age: 0,        # no preflight caching
+             credentials: true  # allow cookies + auth headers
+  end
+end
+
+def allowed_origins
+  JSON.parse(ENV.fetch('ALLOWED_ORIGINS', '[]')).map do |origin|
+    OriginPatternConverter.convert_to_regexp(origin)
+  end
+end</code></pre>
+      <p>The <code>origins</code> block receives the incoming <code>Origin</code> header as <code>source</code>. The browser sets this automatically. <code>rack-cors</code> extracts it and passes it into your block. You match it against patterns built from an environment variable — this keeps allowed origins outside of code and configurable per environment.</p>
+
+      <h3>Node.js / Express with cors package</h3>
+      <pre><code>app.use(
+  '/api/v1',
+  cors({
+    origin: (origin, callback) => {
+      // origin is undefined for same-origin requests
+      // or non-browser tools like curl, Postman
+      if (!origin) {
+        return callback(null, false); // skip CORS headers — not needed
+      }
+      if (isOriginAllowed(origin)) {
+        return callback(null, origin); // allow — sets exact origin in header
+      }
+      return callback(null, false); // deny — no ACAO header → browser blocks
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
+    maxAge: 0,
+  }),
+);</code></pre>
+
+      <div class="callout callout-key">
+        <strong>Why <code>callback(null, origin)</code> and not <code>callback(null, true)</code>?</strong> Because <code>credentials: true</code> requires an explicit origin in the response header, not a wildcard. Passing the actual origin string back makes the <code>cors</code> package write <code>Access-Control-Allow-Origin: https://your-exact-origin.com</code> instead of <code>*</code>.
+      </div>
+
+      <h3>What happens to requests with no Origin header</h3>
+      <p>When <code>origin</code> is <code>undefined</code> (same-origin browser request, or a tool like curl or Postman), the code calls <code>callback(null, false)</code>. This does not block the request. It just skips adding CORS headers to the response — because there's no browser enforcement happening anyway. The request still reaches your controller and responds normally.</p>
+    </div>
+
+    <hr class="rule-divider">
+
+    <!-- SECTION 7 -->
+    <div class="section" id="mistakes">
+      <div class="section-eyebrow">07 — the gotchas</div>
+      <h2>Common mistakes and misconceptions</h2>
+
+      <div class="myths">
+        <div class="myth-header">
+          <div class="myth-h myth-h-no">The misconception</div>
+          <div class="myth-h myth-h-yes">The reality</div>
+        </div>
+        <div class="myth-row">
+          <div class="myth-cell myth-no myth-cell-no">"CORS error means the server rejected my request"</div>
+          <div class="myth-cell myth-yes myth-cell-yes">The server responded fine. The browser blocked the response because CORS headers were missing or wrong.</div>
+        </div>
+        <div class="myth-row">
+          <div class="myth-cell myth-no myth-cell-no">"Use <code>Access-Control-Allow-Origin: *</code>, it always works"</div>
+          <div class="myth-cell myth-yes myth-cell-yes">Breaks the moment you need cookies or Authorization headers. Must be an explicit origin when credentials are involved.</div>
+        </div>
+        <div class="myth-row">
+          <div class="myth-cell myth-no myth-cell-no">"CORS protects my server"</div>
+          <div class="myth-cell myth-yes myth-cell-yes">CORS protects your users' browsers from malicious sites. Your server is still hit on every request, CORS or not.</div>
+        </div>
+        <div class="myth-row">
+          <div class="myth-cell myth-no myth-cell-no">"I need to add CORS headers to my request"</div>
+          <div class="myth-cell myth-yes myth-cell-yes">CORS headers belong on the response, set by the server. Browsers set request headers automatically — you can't override Origin.</div>
+        </div>
+        <div class="myth-row">
+          <div class="myth-cell myth-no myth-cell-no">"curl works but my browser doesn't — it's a browser bug"</div>
+          <div class="myth-cell myth-yes myth-cell-yes">CORS is enforced by browsers only. curl has no Same-Origin Policy. Working in curl just means the server responds — it says nothing about your CORS config.</div>
+        </div>
+      </div>
+    </div>
+
+    <hr class="rule-divider">
+
+    <!-- SECTION 8 -->
+    <div class="section" id="fix">
+      <div class="section-eyebrow">08 — the fix</div>
+      <h2>How to get it right</h2>
+
+      <h3>Never reflect the Origin header blindly</h3>
+      <pre><code>// ✗ The vulnerable pattern — seen in every breach above
+const origin = req.headers['origin'];
+res.setHeader('Access-Control-Allow-Origin', origin); // anything goes
+
+// ✓ The safe pattern — validate first
+const ALLOWED_ORIGINS = [
+  'https://app.mycompany.com',
+  'https://staging.mycompany.com'
+];
+
+const origin = req.headers['origin'];
+if (ALLOWED_ORIGINS.includes(origin)) {
+  res.setHeader('Access-Control-Allow-Origin', origin);
+}</code></pre>
+
+      <h3>Be careful with regex validation</h3>
+      <p>The dot character in regular expressions matches any character — not just a literal dot. This is how <code>api.example.com</code> becomes exploitable as <code>apiXexample.com</code>:</p>
+      <pre><code>// ✗ Unescaped dot — matches apiXexample.com, api-example.com
+if (/api.example.com/.test(origin)) → allow
+
+// ✓ Escaped dot
+if (/api\.example\.com/.test(origin)) → allow</code></pre>
+
+      <h3>The checklist</h3>
+      <div class="summary-box">
+        <h3>Before you deploy any CORS config</h3>
+        <ul>
+          <li>Validate the Origin header against an explicit allowlist — never reflect it directly</li>
+          <li>Never use <code>credentials: true</code> with wildcard <code>*</code> — they are mutually exclusive</li>
+          <li>Include <code>OPTIONS</code> in your allowed methods — required for preflight to work</li>
+          <li>Escape dots in any regex origin patterns (<code>\.</code> not <code>.</code>)</li>
+          <li>Test with a fake origin: send a request with <code>Origin: https://evil.com</code> and check if it gets reflected back</li>
+          <li>Set <code>max_age</code> to a reasonable value in production (e.g. 86400) to avoid unnecessary preflight on every request</li>
+          <li>Don't allow <code>localhost</code> or <code>null</code> origins in production configs</li>
+          <li>CORS is not your auth layer — you still need JWT, sessions, or API keys</li>
+        </ul>
+      </div>
+    </div>
+
+    <hr class="rule-divider">
+
+    <!-- CLOSING -->
+    <div class="section">
+      <div class="section-eyebrow">closing thought</div>
+      <h2>One line to remember</h2>
+      <p style="font-family:var(--serif);font-size:1.25rem;color:var(--ink);font-style:italic;line-height:1.6;margin-bottom:1.25rem;">"CORS is the browser asking the server: do you trust this website? The server answers via response headers. The browser enforces it."</p>
+      <p>The browser is doing its job. Always has been. The question is whether your config helps it do that job — or accidentally breaks it by trusting everything.</p>
+      <p>CORS is the kind of thing that seems simple and isn't. The "easy fix" of reflecting the origin back is always right there, tempting you when something is blocked and you just want it to work. Now you know what's actually at stake when you make that choice.</p>
+      <p>Now you know what it's actually protecting. Use that.</p>
+    </div>
+
+  </div>
+</article>
+
+<footer style="border-top:1px solid var(--rule);padding:2rem;text-align:center;font-size:13px;color:var(--ink-3);">
+  <p>Web Security · Deep Dive Series</p>
+</footer>
+
+</body>
+</html>
