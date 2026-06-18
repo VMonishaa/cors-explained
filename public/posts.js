@@ -8,7 +8,7 @@ const POSTS = [
     read: "12 min"
   },
   {
-    file: "design-twitter-annotated.html",
+    file: "lc-design_twitter.html",
     tag: "Data Structures & Algorithms",
     title: "Design Twitter — the data structures, the naive approach, and exactly where each version gets faster",
     desc: "Every data structure choice explained, the naive approach and why it's slow, and the optimized heap solution — with the costly line circled right in the code. Covers LeetCode 355.",
