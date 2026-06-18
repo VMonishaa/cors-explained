@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design Twitter — Data Structures, Naive Approach, and Where Each Version Gets Faster</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lora:ital,wght@0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #FAFAF8;
+    --surface: #FFFFFF;
+    --ink: #1A1A18;
+    --ink-2: #4A4A46;
+    --ink-3: #888780;
+    --accent: #1D9E75;
+    --accent-light: #E1F5EE;
+    --accent-dark: #085041;
+    --danger: #E24B4A;
+    --danger-light: #FCEBEB;
+    --rule: #E8E6DF;
+    --code-bg: #F1EFE8;
+    --comment: #5E8C74;
+    --serif: 'Lora', Georgia, serif;
+    --sans: 'Inter', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 17px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .hero { max-width: 720px; margin: 0 auto; padding: 4.5rem 2rem 2.5rem; }
+  .hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 1.25rem;
+  }
+  .hero-eyebrow::before { content: ''; display: block; width: 24px; height: 1.5px; background: var(--accent); }
+  .hero h1 {
+    font-family: var(--serif); font-size: clamp(1.9rem, 5vw, 2.5rem); font-weight: 600;
+    line-height: 1.25; color: var(--ink); margin-bottom: 1.1rem; letter-spacing: -.01em;
+  }
+  .hero-sub { font-size: 1.05rem; color: var(--ink-2); max-width: 580px; line-height: 1.6; }
+
+  .content { max-width: 720px; margin: 0 auto; padding: 0 2rem 5rem; }
+  .section { margin-bottom: 2.75rem; }
+  .section-eyebrow {
+    font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: .6rem;
+  }
+  .section h2 { font-family: var(--serif); font-size: 1.4rem; font-weight: 600; color: var(--ink); margin-bottom: .9rem; line-height: 1.3; }
+  .section p { margin-bottom: .85rem; color: var(--ink-2); }
+  .section p:last-child { margin-bottom: 0; }
+
+  .spec-box { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 1rem 1.25rem; margin: 1rem 0; font-size: 14.5px; }
+  .spec-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); margin-bottom: 3px; }
+  .spec-box p { margin-bottom: 0; color: var(--ink-2); }
+
+  pre { background: var(--code-bg); border-radius: 8px; padding: 1.1rem 1.3rem; overflow-x: auto; margin: 1rem 0; border: 1px solid var(--rule); }
+  code { font-family: var(--mono); font-size: 13px; line-height: 1.65; color: var(--ink); }
+  p code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: 12.5px; color: var(--accent-dark); }
+  .cm { color: var(--comment); font-style: italic; }
+  .code-label {
+    font-size: 11.5px; font-weight: 700; color: var(--accent-dark);
+    letter-spacing: .06em; text-transform: uppercase; margin-bottom: 4px; margin-top: 1.25rem;
+  }
+
+  .diagram-frame { border: 1px solid var(--rule); border-radius: 12px; overflow: hidden; background: var(--code-bg); margin: .5rem 0 1rem; }
+
+  .rule-divider { border: none; border-top: 1px solid var(--rule); margin: 2.25rem 0; }
+
+  @media (max-width: 600px) {
+    .hero { padding: 3rem 1.25rem 2rem; }
+    .content { padding: 0 1.25rem 3.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<article>
+
+  <div class="hero">
+    <div class="hero-eyebrow">Data Structures &amp; Algorithms</div>
+    <h1>Design Twitter — the data structures, the naive approach, and exactly where each version gets faster</h1>
+    <p style="font-size:14px;color:var(--ink-3);margin-bottom:1.25rem;">This is <a href="https://leetcode.com/problems/design-twitter/" target="_blank" rel="noopener" style="color:var(--accent-dark);font-weight:600;text-decoration:underline;">LeetCode 355. Design Twitter</a> — head there for the full problem statement.</p>
+    <p class="hero-sub">Every approach, with the expensive line circled — and carried forward so you can see what got fixed and what's still on the hook.</p>
+  </div>
+
+  <div class="content">
+
+    <!-- DS CHOICE 1 -->
+    <div class="section">
+      <div class="section-eyebrow">choice 1 — storing tweets</div>
+      <h2>A dict of lists</h2>
+      <div class="spec-box">
+        <div class="spec-label">choice</div>
+        <p><code>tweetMap[userId] → list of [timestamp, tweetId]</code></p>
+        <div class="spec-label" style="margin-top:.75rem;">why</div>
+        <p>A dict gives instant lookup of "this user's tweets" by id — no scanning. A list works because tweets always get appended in the order they're posted, so the list is already sorted by time for free. No extra sort needed just to store a new tweet.</p>
+      </div>
+    </div>
+
+    <!-- DS CHOICE 2 -->
+    <div class="section">
+      <div class="section-eyebrow">choice 2 — storing who follows whom</div>
+      <h2>A dict of sets</h2>
+      <div class="spec-box">
+        <div class="spec-label">choice</div>
+        <p><code>followMap[userId] → set of followeeIds</code></p>
+        <div class="spec-label" style="margin-top:.75rem;">why</div>
+        <p>Same instant lookup by id. A set, not a list, because following someone twice should do nothing, and the order of followees never matters. A set gives O(1) add / remove / check and refuses duplicates on its own.</p>
+      </div>
+    </div>
+
+    <!-- DS CHOICE 3 -->
+    <div class="section">
+      <div class="section-eyebrow">choice 3 — posting a tweet</div>
+      <h2>Append it, then tick the counter</h2>
+      <div class="spec-box">
+        <div class="spec-label">what happens</div>
+        <p>Add the tweet to that user's list, then move the shared counter forward by one.</p>
+        <div class="spec-label" style="margin-top:.75rem;">why</div>
+        <p>Appending keeps every user's tweets in the order they were posted, automatically — no sorting needed just to store one. The counter ticks up by one no matter who's posting, so two tweets can never tie, and a bigger number always means "happened later."</p>
+      </div>
+      <pre><code>def postTweet(self, userId, tweetId):
+    self.tweetMap[userId].append([self.timestamp, tweetId])
+    self.timestamp += 1</code></pre>
+    </div>
+
+    <hr class="rule-divider">
+
+    <!-- APPROACH 1 -->
+    <div class="section">
+      <div class="section-eyebrow">approach 1</div>
+      <h2>Collect everything, sort, slice</h2>
+      <p>Grab every tweet from the user and everyone they follow. Sort the combined list by time. Take the top 10.</p>
+
+      <div class="code-label">example</div>
+      <pre><code><span class="cm"># user 1 follows user 2 and user 3</span>
+tweetMap = {
+    2: [[0, 'a'], [2, 'b'], [4, 'c']],   <span class="cm"># user 2 has posted 3 tweets</span>
+    3: [[1, 'x'], [3, 'y']]              <span class="cm"># user 3 has posted 2 tweets</span>
+}
+
+feed = tweetMap[2] + tweetMap[3]   <span class="cm"># 5 tweets combined here, fine at this size</span>
+feed.sort(key=lambda t: -t[0])     <span class="cm"># sorts all 5 -- but if user 2 had posted</span>
+                                    <span class="cm"># 4,000 tweets instead of 3, this same line</span>
+                                    <span class="cm"># sorts all 4,000, every time, to use 10.</span></code></pre>
+
+      <div class="code-label">the method</div>
+      <pre><code>def getNewsFeed(self, userId):
+    feed = self.tweetMap[userId][:]
+    for followeeId in self.followMap[userId]:
+        feed.extend(self.tweetMap[followeeId])
+    feed.sort(key=lambda x: -x[0])
+    return [tweetId for _, tweetId in feed[:10]]</code></pre>
+
+      <div class="code-label">where the cost is</div>
+      <div class="diagram-frame">
+        <svg width="100%" viewBox="0 0 640 175" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="640" height="175" fill="#F1EFE8"/>
+          <text font-family="'JetBrains Mono',monospace" font-size="12.5" fill="#1A1A18" x="24" y="34">feed = self.tweetMap[userId][:]</text>
+          <text font-family="'JetBrains Mono',monospace" font-size="12.5" fill="#1A1A18" x="24" y="58">for followeeId in self.followMap[userId]:</text>
+          <text font-family="'JetBrains Mono',monospace" font-size="12.5" fill="#1A1A18" x="24" y="82">    feed.extend(self.tweetMap[followeeId])</text>
+          <text font-family="'JetBrains Mono',monospace" font-size="12.5" fill="#1A1A18" x="24" y="106">feed.sort(key=lambda x: -x[0])</text>
+          <text font-family="'JetBrains Mono',monospace" font-size="12.5" fill="#1A1A18" x="24" y="130">return [tweetId for _, tweetId in feed[:10]]</text>
+          <ellipse cx="135" cy="106" rx="120" ry="15" fill="none" stroke="#E24B4A" stroke-width="2" stroke-dasharray="5 4"/>
+          <text font-family="'Inter',sans-serif" font-size="11" font-weight="600" fill="#791F1F" x="24" y="152">↑ sorts the ENTIRE combined list — even though only 10 are ever kept</text>
+        </svg>
+      </div>
+    </div>
+
+    <hr class="rule-divider">
+
+    <!-- APPROACH 2 -->
+    <div class="section">
+      <div class="section-eyebrow">approach 2</div>
+      <h2>Heap merge — stop sorting everything</h2>
+      <p>Only ever look at the newest tweet from each followee. Take whichever is newest overall, then pull that same followee's next tweet into the running. Repeat until you have 10.</p>
+      <p>Why only the newest tweet from each person? Their tweets are already stored oldest to newest — that's just what happens when you keep appending to a list. So the newest tweet is the only one that could possibly win right now; everything else that person has posted is older, and older can never beat newer. Once we've used a person's newest tweet, <em>then</em> their second-newest becomes worth looking at — never before that.</p>
+
+      <div class="code-label">example — one merge cycle at a time, 2 followees</div>
+      <pre><code><span class="cm"># user1 follows user2 and user3</span>
+<span class="cm"># user2's tweets, oldest -&gt; newest: t101 (time 0), t102 (time 2)</span>
+<span class="cm"># user3's tweets, oldest -&gt; newest: t201 (time 1)</span>
+
+<span class="cm"># Step 1: look at ONLY each person's newest tweet</span>
+<span class="cm">#   user2's newest -&gt; t102 (time 2)</span>
+<span class="cm">#   user3's newest -&gt; t201 (time 1)</span>
+
+<span class="cm"># Step 2: whichever is newest overall wins first</span>
+<span class="cm">#   t102 (time 2) beats t201 (time 1)  -&gt;  feed = [t102]</span>
+
+<span class="cm"># Step 3: user2 just got used up -- do they have another tweet?</span>
+<span class="cm">#   yes -&gt; t101 (time 0) becomes user2's new candidate</span>
+
+<span class="cm"># Step 4: compare again -- t101 (time 0) vs t201 (time 1)</span>
+<span class="cm">#   t201 wins this round  -&gt;  feed = [t102, t201]</span>
+
+<span class="cm"># Step 5: user3 has nothing left. user2 still has t101 -- take it.</span>
+<span class="cm">#   feed = [t102, t201, t101]</span>
+
+<span class="cm"># done -- already newest to oldest, no extra sorting needed</span></code></pre>
+
+      <div class="code-label">the method</div>
+      <pre><code>def getNewsFeed(self, userId):
+    res, minHeap = [], []
+    self.followMap[userId].add(userId)
+
+    for followeeId in self.followMap[userId]:
+        if followeeId in self.tweetMap:
+            index = len(self.tweetMap[followeeId]) - 1
+            ts, tweetId = self.tweetMap[followeeId][index]
+            heapq.heappush(minHeap, [-ts, tweetId, followeeId, index - 1])  <span class="cm"># flipped: smallest = newest</span>
+
+    while minHeap and len(res) &lt; 10:
+        ts, tweetId, followeeId, index = heapq.heappop(minHeap)
+        res.append(tweetId)
+        if index &gt;= 0:
+            ts, tweetId = self.tweetMap[followeeId][index]
+            heapq.heappush(minHeap, [-ts, tweetId, followeeId, index - 1])
+
+    return res</code></pre>
+
+      <div class="code-label">what got fixed, what's still costly</div>
+      <div class="diagram-frame">
+        <svg width="100%" viewBox="0 0 640 216" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="640" height="216" fill="#F1EFE8"/>
+          <text font-family="'Inter',sans-serif" font-size="11.5" font-weight="700" fill="#085041" x="24" y="22">✓ already fixed: no more sorting the full combined list</text>
+          <text font-family="'JetBrains Mono',monospace" font-size="12" fill="#1A1A18" x="24" y="50">for followeeId in self.followMap[userId]:</text>
+          <text font-family="'JetBrains Mono',monospace" font-size="12" fill="#1A1A18" x="24" y="74">    if followeeId in self.tweetMap:</text>
+          <text font-family="'JetBrains Mono',monospace" font-size="12" fill="#1A1A18" x="24" y="98">        index = len(self.tweetMap[followeeId]) - 1</text>
+          <text font-family="'JetBrains Mono',monospace" font-size="12" fill="#1A1A18" x="24" y="122">        ts, tweetId = self.tweetMap[followeeId][index]</text>
+          <text font-family="'JetBrains Mono',monospace" font-size="12" fill="#1A1A18" x="24" y="146">        heapq.heappush(minHeap, [-ts, tweetId, ...])</text>
+          <ellipse cx="200" cy="146" rx="185" ry="15" fill="none" stroke="#E24B4A" stroke-width="2" stroke-dasharray="5 4"/>
+          <text font-family="'Inter',sans-serif" font-size="11" font-weight="600" fill="#791F1F" x="24" y="172">↑ this push runs once per followee — F times total, each O(log F)</text>
+          <text font-family="'Inter',sans-serif" font-size="10.5" font-style="italic" fill="#4A4A46" x="24" y="196">Fine normally. Slow if someone follows thousands of people.</text>
+        </svg>
+      </div>
+    </div>
+
+    <hr class="rule-divider">
+
+    <!-- APPROACH 3 -->
+    <div class="section">
+      <div class="section-eyebrow">approach 3</div>
+      <h2>Optimized heap — remember less, check fewer people first</h2>
+      <p>Two small changes here. First: only remember a user's last 10 tweets — anything older than that was never going to be used anyway. Second: if someone follows 10 or more people, take a quick look at just their newest tweets first, and drop anyone whose newest tweet isn't fresh enough to matter — before doing the real merge.</p>
+
+      <div class="code-label">example — narrowing followees before merging</div>
+      <pre><code><span class="cm"># 12 followees, only their single newest tweet shown, freshest to stalest:</span>
+<span class="cm"># N1  N2  N3  N4  N5  N6  N7  N8  N9  N10 | N11  N12</span>
+<span class="cm">#                                          ^ cut here</span>
+<span class="cm">#</span>
+<span class="cm"># N11 and N12 get dropped completely -- even though we never looked at</span>
+<span class="cm"># any of their OTHER tweets. 10 other people already have something</span>
+<span class="cm"># newer than N11 or N12's best tweet, so neither could ever win a spot.</span></code></pre>
+
+      <p><code>postTweet</code> picks up exactly one new line below — the cap. Everything else about it is unchanged from before.</p>
+
+      <div class="code-label">the method</div>
+      <pre><code>def postTweet(self, userId, tweetId):
+    self.tweetMap[userId].append([self.timestamp, tweetId])
+    if len(self.tweetMap[userId]) &gt; 10:
+        self.tweetMap[userId].pop(0)   <span class="cm"># nobody needs more than their last 10 remembered</span>
+    self.timestamp += 1
+
+def getNewsFeed(self, userId):
+    res, minHeap = [], []
+    self.followMap[userId].add(userId)
+    followees = self.followMap[userId]
+
+    if len(followees) &gt; 10:
+        shortlist = []
+        for followeeId in followees:
+            if followeeId in self.tweetMap:
+                index = len(self.tweetMap[followeeId]) - 1
+                ts, tweetId = self.tweetMap[followeeId][index]
+                heapq.heappush(shortlist, [ts, tweetId, followeeId, index - 1])
+                if len(shortlist) &gt; 10:
+                    heapq.heappop(shortlist)   <span class="cm"># drops the stalest "newest tweet" -- no flip needed, ts is already raw</span>
+        for ts, tweetId, followeeId, index in shortlist:
+            heapq.heappush(minHeap, [-ts, tweetId, followeeId, index])
+    else:
+        for followeeId in followees:
+            if followeeId in self.tweetMap:
+                index = len(self.tweetMap[followeeId]) - 1
+                ts, tweetId = self.tweetMap[followeeId][index]
+                heapq.heappush(minHeap, [-ts, tweetId, followeeId, index - 1])
+
+    while minHeap and len(res) &lt; 10:
+        ts, tweetId, followeeId, index = heapq.heappop(minHeap)
+        res.append(tweetId)
+        if index &gt;= 0:
+            ts, tweetId = self.tweetMap[followeeId][index]
+            heapq.heappush(minHeap, [-ts, tweetId, followeeId, index - 1])
+
+    return res</code></pre>
+
+      <div class="spec-box">
+        <div class="spec-label">why the minus sign</div>
+        <p>Python's heap always hands you the <em>smallest</em> number it's holding. But the timestamp only ever counts up, so the newest tweet always has the <em>biggest</em> number. To make the heap hand us the newest tweet first, we store it negative — the biggest real number becomes the smallest negative one, and the heap gives that to us first, which is exactly the tweet we want.</p>
+        <p style="margin-top:.5rem;">The <code>shortlist</code> heap doesn't need this trick. Its job is the opposite: throw out the oldest of the bunch whenever it overflows past 10. "Oldest" already means "smallest raw number" — no flip required there.</p>
+      </div>
+
+      <div class="code-label">what got fixed</div>
+      <div class="diagram-frame">
+        <svg width="100%" viewBox="0 0 640 216" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="640" height="216" fill="#F1EFE8"/>
+          <text font-family="'Inter',sans-serif" font-size="11.5" font-weight="700" fill="#085041" x="24" y="22">✓ fixed: this heap can never hold more than 11 entries, no matter how many you follow</text>
+          <text font-family="'JetBrains Mono',monospace" font-size="12" fill="#1A1A18" x="24" y="50">for followeeId in followees:</text>
+          <text font-family="'JetBrains Mono',monospace" font-size="12" fill="#888780" x="24" y="74">    ...                          # tweet lookup, same as before</text>
+          <text font-family="'JetBrains Mono',monospace" font-size="12" fill="#1A1A18" x="24" y="98">    heapq.heappush(shortlist, [ts, tweetId, ...])</text>
+          <text font-family="'JetBrains Mono',monospace" font-size="12" fill="#1A1A18" x="24" y="122">    if len(shortlist) &gt; 10:</text>
+          <text font-family="'JetBrains Mono',monospace" font-size="12" fill="#1A1A18" x="24" y="146">        heapq.heappop(shortlist)</text>
+          <ellipse cx="195" cy="134" rx="190" ry="28" fill="#1D9E75" fill-opacity="0.08" stroke="#1D9E75" stroke-width="2" stroke-dasharray="5 4"/>
+          <text font-family="'Inter',sans-serif" font-size="11" font-weight="600" fill="#085041" x="24" y="172">↑ capped at 10 → each push/pop costs O(log 11) — a constant, not O(log F)</text>
+          <text font-family="'Inter',sans-serif" font-size="10.5" font-style="italic" fill="#4A4A46" x="24" y="196">A constant cost, done F times, is O(F) total — down from O(F log F) before.</text>
+        </svg>
+      </div>
+      <p>That's the whole improvement: once the heap is capped at 10, every push and pop does roughly the same small amount of work, no matter how many people you follow. You still do that small bit of work once for each followee, but none of them can ever make a single step slower than any other. And you can't really do better than glancing at each followee at least once — that's the only way to know whether they belong in the top 10.</p>
+    </div>
+
+    <hr class="rule-divider">
+
+    <div class="section">
+      <div class="section-eyebrow">the whole thing, in one place</div>
+      <h2>What we actually did</h2>
+      <p>Tweets live in a dict so you can jump straight to any user's list by id, and a list keeps them in order automatically since new tweets just get appended. Followees live in a set, so following someone twice does nothing and order never matters. Posting a tweet appends it and bumps one shared counter, so nothing ever ties and "bigger number" always means "newer."</p>
+      <p>The naive feed dumps every followee's tweets into one pile and sorts the whole thing — simple, but it sorts tweets that never had a shot at the top 10. The heap version fixes that by only ever looking at the single newest tweet from each followee: take whichever is newest, then check that same person's next tweet, and repeat until the feed has 10. The final version trims it further — nobody's tweets beyond their last 10 are kept, and if someone follows a lot of people, only the 10 with the freshest tweets are even allowed into the real merge.</p>
+      <p style="font-style:italic;color:var(--ink-3);">How fast (or slow) each of these approaches actually is — that's the next blog.</p>
+    </div>
+
+  </div>
+</article>
+
+<footer style="border-top:1px solid var(--rule);padding:2rem;text-align:center;font-size:13px;color:var(--ink-3);">
+  <p>Data Structures &amp; Algorithms · Story Walkthrough</p>
+</footer>
+
+</body>
+</html>
